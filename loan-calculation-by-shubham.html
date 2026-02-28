@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Loan Calculation by Shubham</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+margin:0;
+font-family:'Segoe UI',sans-serif;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:white;
+display:flex;
+justify-content:center;
+padding:20px;
+}
+
+.container{
+background:rgba(255,255,255,0.08);
+padding:25px;
+border-radius:20px;
+width:600px;
+backdrop-filter:blur(12px);
+box-shadow:0 25px 50px rgba(0,0,0,0.5);
+}
+
+h1{text-align:center;margin-bottom:5px;}
+.tagline{text-align:center;font-size:14px;color:#ccc;margin-bottom:20px;}
+
+input,select{
+width:100%;
+padding:12px;
+margin:6px 0;
+border-radius:10px;
+border:none;
+font-size:15px;
+}
+
+button{
+width:100%;
+padding:13px;
+background:linear-gradient(90deg,#00c9ff,#92fe9d);
+border:none;
+border-radius:12px;
+font-size:16px;
+cursor:pointer;
+margin-top:12px;
+font-weight:bold;
+}
+
+.result{
+background:rgba(0,0,0,0.4);
+padding:15px;
+margin-top:15px;
+border-radius:12px;
+}
+
+canvas{
+margin-top:20px;
+background:white;
+border-radius:12px;
+padding:10px;
+}
+
+.footer{
+text-align:center;
+margin-top:15px;
+font-size:12px;
+color:#aaa;
+}
+
+.highlight{color:#92fe9d;font-weight:bold;}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>💰 Loan Calculation by Shubham</h1>
+<div class="tagline">Smart way to become loan free faster</div>
+
+<label>Loan Amount (₹)</label>
+<input type="number" id="loan">
+
+<label>Interest Rate % (Annual)</label>
+<input type="number" id="rate">
+
+<label>Tenure Type</label>
+<select id="tenureType">
+<option value="years">Years</option>
+<option value="months">Months</option>
+</select>
+
+<label>Tenure Value</label>
+<input type="number" id="tenure">
+
+<label>Monthly Extra Payment (₹)</label>
+<input type="number" id="extra" placeholder="Optional">
+
+<label>One Time Lump Sum (₹)</label>
+<input type="number" id="lump" placeholder="Optional">
+
+<button onclick="calculate()">Calculate & Compare</button>
+
+<div class="result" id="output"></div>
+
+<canvas id="chart"></canvas>
+
+<button onclick="shareWhatsApp()">Share on WhatsApp</button>
+
+<div class="footer">Designed by Shubham</div>
+
+</div>
+
+<script>
+
+function calculate(){
+
+let loan=parseFloat(document.getElementById("loan").value);
+let rate=parseFloat(document.getElementById("rate").value)/100/12;
+let tenure=parseFloat(document.getElementById("tenure").value);
+let extra=parseFloat(document.getElementById("extra").value)||0;
+let lump=parseFloat(document.getElementById("lump").value)||0;
+let type=document.getElementById("tenureType").value;
+
+if(type==="years") tenure*=12;
+
+if(!loan||!rate||!tenure){
+alert("Please fill required details");
+return;
+}
+
+// EMI
+let emi=loan*rate*Math.pow(1+rate,tenure)/(Math.pow(1+rate,tenure)-1);
+
+// Without prepayment
+let bal1=loan;
+let interest1=0;
+let m1=0;
+
+while(bal1>0 && m1<1000){
+let interest=bal1*rate;
+let principal=emi-interest;
+bal1-=principal;
+interest1+=interest;
+m1++;
+}
+
+// With prepayment
+let bal2=loan-lump;
+if(bal2<0) bal2=0;
+
+let interest2=0;
+let m2=0;
+
+while(bal2>0 && m2<1000){
+let interest=bal2*rate;
+let principal=emi-interest;
+bal2-=(principal+extra);
+interest2+=interest;
+m2++;
+}
+
+let savedInterest=(interest1-interest2).toFixed(0);
+let savedMonths=m1-m2;
+let savedYears=(savedMonths/12).toFixed(1);
+
+let today=new Date();
+today.setMonth(today.getMonth()+m2);
+let closeDate=today.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+
+document.getElementById("output").innerHTML=`
+<b>Monthly EMI:</b> ₹${emi.toFixed(0)}<br><br>
+
+📊 <span class="highlight">Without Prepayment</span><br>
+Tenure: ${m1} months (${(m1/12).toFixed(1)} yrs)<br>
+Interest Paid: ₹${interest1.toFixed(0)}<br><br>
+
+🚀 <span class="highlight">With Prepayment</span><br>
+Loan closes in: ${m2} months (${(m2/12).toFixed(1)} yrs)<br>
+Closing Date: ${closeDate}<br>
+Interest Paid: ₹${interest2.toFixed(0)}<br><br>
+
+💰 <span class="highlight">Interest Saved:</span> ₹${savedInterest}<br>
+⏳ <span class="highlight">Time Saved:</span> ${savedYears} years early
+`;
+
+drawChart(interest1,interest2);
+}
+
+function drawChart(i1,i2){
+
+let ctx=document.getElementById("chart");
+
+if(window.myChart) window.myChart.destroy();
+
+window.myChart=new Chart(ctx,{
+type:"bar",
+data:{
+labels:["Without Prepayment","With Prepayment"],
+datasets:[{
+label:"Total Interest Paid ₹",
+data:[i1,i2],
+backgroundColor:["#00c9ff","#92fe9d"]
+}]
+},
+options:{
+plugins:{
+legend:{labels:{color:"black"}}
+},
+scales:{
+x:{ticks:{color:"black"}},
+y:{ticks:{color:"black"}}
+}
+}
+});
+}
+
+function shareWhatsApp(){
+let text="Check out this Loan Calculator made by Shubham! 💰 Smart way to become loan free faster.";
+let url=encodeURIComponent(window.location.href);
+window.open(`https://wa.me/?text=${text}%20${url}`,"_blank");
+}
+
+</script>
+
+</body>
+</html>
